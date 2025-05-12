@@ -1,0 +1,110 @@
+use('pulseras_inteligentes')
+
+// Colección para usuarios del sensor
+db.createCollection('usuarios_sensor', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['id_usuario', 'nombre', 'fecha_registro'],
+            properties: {
+                id_usuario: {
+                    bsonType: 'int',
+                    description: 'ID único del usuario'
+                },
+                nombre: {
+                    bsonType: 'string',
+                    description: 'Nombre del usuario'
+                },
+                fecha_registro: {
+                    bsonType: 'date',
+                    description: 'Fecha de registro del usuario'
+                }
+            }
+        }
+    }
+});
+
+// Colección para datos del sensor
+db.createCollection('datos_sensor', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['id_usuario', 'timestamp', 'tipo_registro', 'datos'],
+            properties: {
+                id_usuario: {
+                    bsonType: 'int',
+                    description: 'ID único del usuario'
+                },
+                timestamp: {
+                    bsonType: 'date',
+                    description: 'Fecha y hora de la lectura del sensor'
+                },
+                tipo_registro: {
+                    bsonType: 'string',
+                    description: 'Tipo de registro del sensor'
+                },
+                datos: {
+                    bsonType: 'object',
+                    description: 'Objeto que contiene los datos específicos del registro'
+                }
+            }
+        }
+    }
+});
+
+// Colección para datos de la aplicación
+db.createCollection('datos_aplicacion', {
+    validator: {
+        $jsonSchema: {
+            bsonType: 'object',
+            required: ['id_usuario', 'timestamp', 'tipo_evento'],
+            properties: {
+                id_usuario: {
+                    bsonType: 'int',
+                    description: 'ID único del usuario'
+                },
+                timestamp: {
+                    bsonType: 'date',
+                    description: 'Fecha y hora del evento'
+                },
+                tipo_evento: {
+                    bsonType: 'string',
+                    enum: ['tiempo_pantalla', 'click_boton', 'envio_formulario', 'uso_funcionalidad'],
+                    description: 'Tipo de evento registrado en la aplicación'
+                },
+                nombre_pantalla: {
+                    bsonType: 'string',
+                    description: 'Nombre de la pantalla (si aplica)'
+                },
+                nombre_boton: {
+                    bsonType: 'string',
+                    description: 'Nombre del botón (si aplica)'
+                },
+                nombre_formulario: {
+                    bsonType: 'string',
+                    description: 'Nombre del formulario (si aplica)'
+                },
+                nombre_funcionalidad: {
+                    bsonType: 'string',
+                    description: 'Nombre de la funcionalidad usada'
+                },
+                detalles: {
+                    bsonType: 'object',
+                    description: 'Objeto JSON para datos adicionales específicos del evento'
+                },
+                id_sesion: {
+                    bsonType: 'string',
+                    description: 'Identificador de la sesión del usuario'
+                },
+                version_aplicacion: {
+                    bsonType: 'string',
+                    description: 'Versión de la aplicación'
+                },
+                version_os: {
+                    bsonType: 'string',
+                    description: 'Versión del sistema operativo del dispositivo'
+                }
+            }
+        }
+    }
+});
