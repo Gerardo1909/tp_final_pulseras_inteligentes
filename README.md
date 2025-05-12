@@ -97,5 +97,35 @@ pulseras_inteligentes/
 * **Python (ETL y Simulación):** Scripts de carga y transformación de datos
 * **Power BI:** Dashboards con métricas de comportamiento y negocio
 
+## ⚙️ Cómo clonar y correr este proyecto
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/Gerardo1909/tp_final_pulseras_inteligentes.git
+cd tp_final_pulseras_inteligentes
+```
+
+### 2. Crear y activar un entorno virtual
+
+```bash
+python -m venv venv
+source venv/bin/activate      # En Linux/macOS
+venv\Scripts\activate.bat     # En Windows
+```
+
+### 3. Instalar las dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Instalar el proyecto en modo editable
+Esto permite importar los módulos de `utils` desde cualquier notebook sin problemas:
+
+```bash
+pip install -e .
+```
+
 
 

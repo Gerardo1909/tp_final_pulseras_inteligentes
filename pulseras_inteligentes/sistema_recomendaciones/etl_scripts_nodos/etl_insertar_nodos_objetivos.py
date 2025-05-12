@@ -1,41 +1,62 @@
-from pulseras_inteligentes.utils.conexiones_db import conectar_db_grafo_usuarios
+"""
+Script ETL para insertar nodos de objetivos en la base de datos de grafos Neo4j.
 
-def insertar_objetivo(db, objetivo: dict):
+Este script crea nodos que representan los diferentes objetivos de salud
+que pueden alcanzar los usuarios, con sus propiedades como tipo de dato,
+umbrales, unidad de medida y cantidad mínima de días consecutivos.
+"""
+
+from typing import List, Dict, Any
+from pulseras_inteligentes.utils.conexiones_db import conectar_db_grafo_usuarios
+from pulseras_inteligentes.utils.etl_funcs import manejo_errores_etl, logger
+
+
+def insertar_objetivo(db, objetivo: Dict[str, Any]) -> None:
     """
     Inserta un nodo de Objetivo en la base de datos Neo4j.
 
-    Parámetros:
+    Args:
         db: Conexión a la base de datos Neo4j.
-        objetivo (dict): Diccionario con los datos del objetivo.
+        objetivo: Diccionario con los datos del objetivo.
     """
-    db.execute_query(
-        """
-        CREATE (:Objetivo {
-            id_objetivo: $id_objetivo,
-            nombre: $nombre,
-            descripcion: $descripcion,
-            tipo_dato: $tipo_dato,
-            umbral_minimo: $umbral_minimo,
-            umbral_maximo: $umbral_maximo,
-            unidad: $unidad,
-            dias_consecutivos_minimos: $dias_consecutivos_minimos
-        })
-        """,
-        id_objetivo=objetivo["id_objetivo"],
-        nombre=objetivo["nombre"],
-        descripcion=objetivo["descripcion"],
-        tipo_dato=objetivo["tipo_dato"],
-        umbral_minimo=objetivo["umbral_minimo"],
-        umbral_maximo=objetivo["umbral_maximo"],
-        unidad=objetivo["unidad"],
-        dias_consecutivos_minimos=objetivo["dias_consecutivos_minimos"],
-    )
-    print(f'Objetivo {objetivo["nombre"]} insertado en la base de datos Neo4j.')
+    try:
+        db.execute_query(
+            """
+            CREATE (:Objetivo {
+                id_objetivo: $id_objetivo,
+                nombre: $nombre,
+                descripcion: $descripcion,
+                tipo_dato: $tipo_dato,
+                umbral_minimo: $umbral_minimo,
+                umbral_maximo: $umbral_maximo,
+                unidad: $unidad,
+                dias_consecutivos_minimos: $dias_consecutivos_minimos
+            })
+            """,
+            id_objetivo=objetivo["id_objetivo"],
+            nombre=objetivo["nombre"],
+            descripcion=objetivo["descripcion"],
+            tipo_dato=objetivo["tipo_dato"],
+            umbral_minimo=objetivo["umbral_minimo"],
+            umbral_maximo=objetivo["umbral_maximo"],
+            unidad=objetivo["unidad"],
+            dias_consecutivos_minimos=objetivo["dias_consecutivos_minimos"],
+        )
+        logger.info(f"Objetivo '{objetivo['nombre']}' (ID: {objetivo['id_objetivo']}) insertado en Neo4j")
+    except Exception as e:
+        logger.error(f"Error al insertar objetivo '{objetivo['nombre']}': {e}")
+        raise
 
 
-def main():
+def obtener_objetivos() -> List[Dict[str, Any]]:
     """
-    Función principal para insertar objetivos en la base de datos Neo4j.
+    Obtiene la lista de objetivos a insertar en la base de datos.
+    
+    En una implementación más avanzada, estos objetivos podrían venir
+    de una configuración externa o una base de datos.
+    
+    Returns:
+        List[Dict[str, Any]]: Lista de diccionarios con datos de objetivos.
     """
     objetivos = [
         {
@@ -79,19 +100,39 @@ def main():
             "dias_consecutivos_minimos": 7,
         },
     ]
+    
+    logger.info(f"Configurados {len(objetivos)} objetivos para inserción")
+    return objetivos
 
-    try:
+
+def main():
+    """
+    Función principal que coordina la inserción de nodos de objetivos.
+    """
+    nombre_etl = "ETL_INSERTAR_NODOS_OBJETIVOS"
+    
+    with manejo_errores_etl(nombre_etl):
         # Conexión a la base de datos Neo4j
         db_grafo_usuarios = conectar_db_grafo_usuarios()
-
-        # Inserción de objetivos
-        for objetivo in objetivos:
-            insertar_objetivo(db_grafo_usuarios, objetivo)
-
-    except Exception as e:
-        print(f"Error al insertar objetivos: {e}")
-    finally:
-        db_grafo_usuarios.close()
+        
+        try:
+            # Obtener lista de objetivos a insertar
+            objetivos = obtener_objetivos()
+            
+            # Contador para el resumen final
+            contador = 0
+            
+            # Inserción de objetivos
+            for objetivo in objetivos:
+                insertar_objetivo(db_grafo_usuarios, objetivo)
+                contador += 1
+            
+            # Resumen final
+            logger.info(f"Nodos de objetivos insertados: {contador} en total")
+        
+        finally:
+            # Cierre de conexión
+            db_grafo_usuarios.close()
 
 
 if __name__ == "__main__":
