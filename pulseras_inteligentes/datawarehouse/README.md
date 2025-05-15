@@ -1,75 +1,60 @@
-# Documentación para el Data Warehouse (SQL)
+# Data Warehouse para Pulseras Inteligentes
 
-Esta documentación detalla la estructura del Data Warehouse diseñado para el sistema de Pulseras Inteligentes. El Data Warehouse es un componente fundamental para el análisis de datos y la mejora constante de la aplicación.
+Este directorio contiene los componentes del Data Warehouse para la aplicación de pulseras inteligentes. El Data Warehouse implementa un enfoque de persistencia políglota, combinando diferentes tecnologías de almacenamiento para abordar distintos aspectos del análisis de datos.
 
-Para estructurar esta documentación, hemos clasificado las tablas en grupos según su rol: **tablas de dimensiones y tablas de hechos**.
+## Propósito del Data Warehouse
 
-## Dominio de los Datos para las tablas de dimensiones
+El Data Warehouse cumple varios roles fundamentales dentro de la aplicación:
 
-Las **tablas de dimensiones** contienen los datos descriptivos que proporcionan contexto a las medidas almacenadas en las tablas de hechos. Estas tablas forman la estructura fundamental del Data Warehouse y permiten realizar análisis multidimensionales.
+1. **Análisis histórico de datos**: Almacena y organiza datos históricos para facilitar el análisis de tendencias y patrones a lo largo del tiempo.
 
-1. **Tabla: `dim_plan`**
-   - **Dominio:** Esta tabla almacena la información de los planes disponibles para los usuarios. Entre los campos que posee se encuentran:
-     - `id_plan` (**PK, SERIAL**): Identificador único para cada plan.
-     - `nombre_plan` (**VARCHAR(100)**): Nombre que identifica al plan.
-     - `descripcion` (**TEXT**): Descripción detallada del plan y sus beneficios.
-     - `duracion_dias` (**INTEGER**): Duración del plan expresada en días.
+2. **Soporte para inteligencia de negocios**: Proporciona una estructura optimizada para consultas analíticas que alimentan los dashboards y reportes utilizados en la toma de decisiones.
 
-2. **Tabla: `dim_metodo_pago`**
-   - **Dominio:** Almacena los diferentes métodos de pago que pueden utilizar los usuarios. Entre los campos que posee se encuentran:
-     - `id_metodo_pago` (**PK, SERIAL**): Identificador único para cada método de pago.
-     - `descripcion` (**VARCHAR(100)**): Descripción del método de pago (tarjeta de crédito, transferencia, etc.).
+3. **Base para el sistema de recomendaciones**: Contiene los datos procesados y estructurados necesarios para generar recomendaciones personalizadas para los usuarios.
 
-3. **Tabla: `dim_estado_pago`**
-   - **Dominio:** Contiene los posibles estados en los que puede encontrarse un pago. Entre los campos que posee se encuentran:
-     - `id_estado` (**PK, SERIAL**): Identificador único para cada estado de pago.
-     - `descripcion` (**VARCHAR(50)**): Descripción del estado del pago (pendiente, completado, rechazado, etc.).
+4. **Consolidación de fuentes heterogéneas**: Integra datos provenientes de diferentes sistemas operacionales en un modelo coherente y unificado.
 
-4. **Tabla: `dim_actividad`**
-   - **Dominio:** Registra las diferentes actividades que los usuarios pueden realizar con la pulsera o la aplicación. Entre los campos que posee se encuentran:
-     - `id_actividad` (**PK, SERIAL**): Identificador único para cada tipo de actividad.
-     - `descripcion` (**VARCHAR(100)**): Descripción de la actividad (caminar, correr, monitoreo de sueño, etc.).
+## Estructura del Directorio
 
-5. **Tabla: `dim_usuario`**
-   - **Dominio:** Almacena la información demográfica y de registro de los usuarios. Entre los campos que posee se encuentran:
-     - `id_usuario` (**PK, INTEGER**): Identificador único para cada usuario.
-     - `nombre` (**VARCHAR(50)**): Nombre del usuario.
-     - `genero` (**VARCHAR(50)**): Género del usuario.
-     - `fecha_registro` (**TIMESTAMP**): Fecha y hora en que el usuario se registró en el sistema.
-     - `fecha_nacimiento` (**DATE**): Fecha de nacimiento del usuario.
+El Data Warehouse está organizado en tres componentes principales que implementan diferentes paradigmas de almacenamiento:
 
-6. **Tabla: `dim_fecha`**
-   - **Dominio:** Contiene una representación dimensional del tiempo que permite realizar análisis temporales. Entre los campos que posee se encuentran:
-     - `id_fecha` (**PK, SERIAL**): Identificador único para cada fecha.
-     - `fecha` (**TIMESTAMP**): Fecha y hora completa.
-     - `dia` (**INTEGER**): Día del mes.
-     - `mes` (**INTEGER**): Mes del año.
-     - `trimestre` (**INTEGER**): Trimestre del año.
-     - `anio` (**INTEGER**): Año.
+### 1. Base de datos dimensional para análisis de ventas (`dwh_ventas/`)
 
-## Dominio de los Datos para las tablas de hechos
+Este subdirectorio contiene el modelo dimensional para el análisis de ventas y suscripciones, implementado en **PostgreSQL (Supabase)** siguiendo un esquema en estrella.
 
-Las **tablas de hechos** almacenan las mediciones numéricas del negocio y las claves foráneas a las tablas de dimensiones. Estas tablas son el centro del esquema en estrella y contienen los datos cuantitativos que serán analizados.
+**Principales componentes**:
+- `creacion_db.sql`: Script para crear la estructura de la base de datos.
+- `insercion_datos_dimensiones.sql`: Script para insertar datos dimensionales.
+- `etl_ventas/`: Scripts ETL para extraer, transformar y cargar datos desde el sistema operacional.
 
-1. **Tabla: `hechos_pagos`**
-   - **Dominio:** Esta tabla registra todas las transacciones de pago realizadas por los usuarios al adquirir planes. Entre los campos que posee se encuentran:
-     - `id_hecho` (**PK, SERIAL**): Identificador único para cada registro de pago.
-     - `id_usuario` (**FK, INTEGER**): Clave foránea que conecta el pago con un usuario específico.
-     - `id_plan` (**FK, INTEGER**): Clave foránea que identifica el plan adquirido.
-     - `id_metodo_pago` (**FK, INTEGER**): Clave foránea que indica el método de pago utilizado.
-     - `id_estado_pago` (**FK, INTEGER**): Clave foránea que refleja el estado del pago.
-     - `id_fecha` (**FK, INTEGER**): Clave foránea que conecta con la dimensión de tiempo.
-     - `hora_registro` (**TIME**): Hora exacta del registro del pago.
-     - `monto_pago` (**DECIMAL(10,2)**): Monto del pago realizado.
+Para más detalles sobre la estructura del modelo dimensional, consulte el [README específico](./dwh_ventas/README.md).
 
-   Esta tabla permite realizar análisis sobre patrones de compra, preferencias de planes y comportamiento de pago de los usuarios.
+### 2. Base de datos MongoDB para análisis de usabilidad (`dwh_usabilidad/`)
 
-2. **Tabla: `hechos_actividad`**
-   - **Dominio:** Registra las actividades realizadas por los usuarios con sus pulseras inteligentes a lo largo del tiempo. Entre los campos que posee se encuentran:
-     - `id_hecho` (**PK, SERIAL**): Identificador único para cada registro de actividad.
-     - `id_usuario` (**FK, INTEGER**): Clave foránea que conecta la actividad con un usuario específico.
-     - `id_actividad` (**FK, INTEGER**): Clave foránea que identifica el tipo de actividad realizada.
-     - `id_fecha` (**FK, INTEGER**): Clave foránea que conecta con la dimensión de tiempo.
-     - `hora_registro` (**TIME**): Hora exacta del registro de la actividad.
+Este subdirectorio contiene las colecciones de MongoDB diseñadas para analizar la usabilidad de la pulsera y la aplicación móvil, aprovechando la flexibilidad de los documentos JSON para datos semi-estructurados.
 
-   Esta tabla es fundamental para el análisis de patrones de uso, preferencias de actividades y generación de recomendaciones personalizadas basadas en el comportamiento de los usuarios.
+**Principales componentes**:
+- `estructura_colecciones.mongodb`: Define la estructura de las colecciones analíticas.
+- `etl_usabilidad/`: Scripts ETL para procesar y agregar los datos de usabilidad.
+
+Para más detalles sobre las colecciones de análisis de usabilidad, consulte el [README específico](./dwh_usabilidad/README.md).
+
+### 3. Base de datos Neo4j para alimentar sistema de recomendación (`sistema_recomendacion/`)
+
+Este subdirectorio contiene el modelo de grafos implementado en Neo4j para alimentar el sistema de recomendaciones personalizadas basado en relaciones entre usuarios, actividades y objetivos de salud.
+
+**Principales componentes**:
+- `etl_scripts_nodos/`: Scripts ETL para procesar y cargar nodos a la base de datos.
+- `etl_scripts_relaciones/`: Scripts ETL para procesar y cargar relaciones a la base de datos.
+
+Para más detalles sobre el sistema de recomendación basado en grafos, consulte el [README específico](./sistema_recomendacion/README.md).
+
+## Flujo de Datos
+
+El flujo de datos en el Data Warehouse sigue estos pasos:
+
+1. Los datos operacionales de PostgreSQL (transacciones, usuarios, suscripciones) son extraídos, transformados y cargados en el modelo dimensional (`dwh_ventas`) mediante procesos ETL.
+
+2. Los datos de sensores y aplicación móvil almacenados en MongoDB son procesados, agregados y cargados en las colecciones analíticas (`dwh_usabilidad`) para soportar análisis de usabilidad.
+
+3. Información relevante de ambas fuentes es transformada en nodos y relaciones para alimentar el modelo de grafos en Neo4j (`sistema_recomendacion`), que soporta el sistema de recomendaciones.

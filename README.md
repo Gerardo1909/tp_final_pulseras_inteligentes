@@ -34,68 +34,67 @@ Desde la perspectiva del área de datos, se establecen los siguientes requerimie
 * **Diseño de un sistema de recomendaciones** basado en grafos y relaciones entre entidades (usuarios, objetivos, actividades).
 * **Simulación de datos sintéticos** en cada capa del sistema, con scripts de generación y carga.
 * **Dashboard interactivo en Power BI**, con al menos 4 elementos visuales claves para la toma de decisiones.
-* **Separación modular del código por subsistema**: transaccional, de recomendación y analítico.
+* **Separación modular del código por subsistema**: operacional, de recomendación y analítico.
 
-## 🧱 Arquitectura del Sistema
+## 🧱 Flujo de datos del Sistema
 
-La arquitectura propuesta está organizada en tres subsistemas principales: **sistema transaccional**, **sistema de recomendación** y **data warehouse analítico**. Cada uno de estos módulos cumple una función específica dentro del ecosistema de datos, y están conectados mediante procesos ETL desarrollados en Python.
+![Flujo de datos](./img/flujo_informacion_pulseras_inteligentes.png)
 
-1. **Sistema Transaccional**
-   Este componente gestiona toda la información operativa y transaccional. Se encuentra implementado en **PostgreSQL (a través de Supabase)** e incluye:
+El flujo de datos de la aplicación está organizado en tres subsistemas principales: **Sistema Operacional**, **Data Warehouse** y **Capa de Business Inteligence**. Cada uno de estos módulos cumple una función específica dentro del ecosistema de datos, y están conectados mediante procesos ETL desarrollados en Python.
 
-   * Datos de **usuarios**, suscripciones, pagos y estados asociados.
-   * Un backend de **sensores** y **aplicación móvil**, cuyos datos son almacenados en **MongoDB**. Aquí se registran tanto las métricas biométricas recolectadas por las pulseras como las interacciones con la aplicación por parte de los usuarios (como tiempo de pantalla o uso de funciones).
+1. **Sistema operacional**
+   Este componente gestiona toda la información operativa relacionada a transacciones comerciales y datos brutos de aplicación móvil y sensor de la pulsera. Se encuentra conformado por dos bases de datos:
 
-2. **Data Warehouse Analítico**
-   Los datos transaccionales y sensoriales son procesados mediante un flujo ETL y consolidados en un **Data Warehouse** alojado en **PostgreSQL (a través de Supabase)**. Este almacena dos grandes bloques:
+   * **Una PostgreSQL (a través de Supabase)** que registra datos de **usuarios**, **suscripciones**, **pagos** y **estados asociados**.
+   * **Y otra MongoDB** que registra los datos enviados por los **sensores de la pulsera** y la **aplicación móvil**. Aquí se registran tanto 
+   las métricas biométricas recolectadas por las pulseras como las interacciones con la aplicación por parte de los usuarios (como tiempo de pantalla o uso de funciones).
 
-   * Un conjunto de **tablas dimensionales** (usuarios, fechas, actividad, planes, etc.).
-   * Dos **tablas de hechos**: una sobre **pagos** y otra sobre **actividad**, que permiten análisis de negocio y patrones de comportamiento.
+2. **Data Warehouse**
+   Los datos operacionales son procesados mediante un flujo ETL y consolidados en un **Data Warehouse** basado en **persistencia políglota**. El objetivo 
+   del mismo es guardar toda la información histórica del negocio para luego poder ser explotada por analistas y así mejorar continuamente el producto. El mismo se encuentra conformado por las siguientes bases de datos:
 
-   Esta capa sirve como fuente para herramientas de inteligencia de negocios como Power BI, donde se visualizan métricas clave sobre el uso del sistema, hábitos saludables y comportamiento de los usuarios.
+   * **Una PostgreSQL (a través de Supabase)** la cual contiene el modelo dimensional utilizado para analizar hechos asociados a ventas/suscripciones del producto.
+   * **Una MongoDB** que contiene una serie de colecciones las cuales están orientadas a responder preguntas de negocio en cuanto a usabilidad del producto y aplicación móvil.
+   * **Y otra Neo4j** que contiene nodos los cuales representan usuarios, actividades físicas y objetivos relacionados a salud, además de relaciones
+   entre los mismos que definen comportamientos en cuanto a uso de la pulsera en sí.  
 
-3. **Sistema de Recomendación**
-   Este módulo está construido sobre **Neo4j**, un motor de base de datos orientado a grafos. A partir de los datos recolectados por los sensores (desde MongoDB), se crean **nodos** representando a usuarios, actividades físicas y objetivos de salud. Además, se generan **relaciones** que modelan:
+3. **Capa de Business Inteligence**
+   Una vez que los datos están consolidados en el **Data Warehouse** estos están listos para ser analizados y así obtener insights valiosos sobre el producto 
+   en general. Entre los puntos clave del negocio que esta capa busca cubrir están:
 
-   * Qué actividades realiza cada usuario.
-   * Qué objetivos se plantea alcanzar.
-   * Qué actividades contribuyen a qué objetivos.
-
-   Estas relaciones permiten desarrollar **recomendaciones personalizadas** que se adaptan dinámicamente al perfil de cada usuario y sus hábitos.
+   * Análisis de ventas del producto y suscripciones a lo largo del tiempo por parte de usuarios.
+   * Análisis de usabilidad de la pulsera y aplicación móvil en tiempo real.
+   * Desarrollo de sistemas de recomendación para mejorar la experiencia del usuario y garantizar fidelidad.
 
 
 ## 📂 Estructura del Proyecto
 
 ```bash
 pulseras_inteligentes/
-├── dashboards/                          # Dashboards generados (Power BI)
-├── datawarehouse/
-│   ├── etl_scripts/
-│   │   ├── creacion_dw.sql             # Creación de tablas dimensionales y de hechos
-│   │   └── insercion_datos_dimensiones.sql
-│   └── README.md
-├── sistema_recomendaciones/
-│   ├── etl_scripts_nodos/              # Carga de nodos en Neo4j
-│   ├── etl_scripts_relaciones/         # Carga de relaciones entre nodos
-│   └── README.md
-├── sistema_transaccional/
-│   ├── pulsera_inteligente/            # Datos de sensores
-│   ├── transacciones_negocio/          # Datos de usuarios, pagos, suscripciones
-│   └── README.md
-├── utils/                               # Funciones auxiliares
-├── main.py                              # Ejecución principal de todo el flujo
-├── requirements.txt                     # Requerimientos de Python
-├── setup.py                             # Configuración del entorno
-└── README.md                            # Este archivo
+├── sistema_operacional/           # Sistema operacional (datos transaccionales)
+│   ├── ingesta_sensor_mongo/      # Scripts para ingesta de datos de sensores y aplicación móvil en MongoDB
+│   └── transacciones_postgres/    # Scripts para gestión de transacciones comerciales en PostgreSQL
+│
+├── datawarehouse/                 # Data Warehouse (persistencia políglota)
+│   ├── dwh_ventas/                # Modelo dimensional para análisis de ventas (PostgreSQL)
+│   ├── dwh_usabilidad/            # Colecciones para análisis de usabilidad (MongoDB)
+│   └── sistema_recomendacion/     # Sistema de recomendación basado en grafos (Neo4j)
+│
+├── business_inteligence/          # Capa de Business Intelligence
+│   └── dashboards/                # Dashboards de Power BI
+│
+├── utils/                         # Utilidades compartidas
+│   ├── conexiones_db.py           # Funciones de conexión a bases de datos
+│   └── etl_funcs.py               # Funciones comunes para procesos ETL
 ```
 
 ## ⚙️ Tecnologías Utilizadas
 
-* **PostgreSQL (via Supabase):** Gestión transaccional y Data Warehouse
-* **MongoDB:** Registro de datos biométricos y de aplicación
-* **Neo4j:** Motor de grafos para recomendaciones contextuales
-* **Python (ETL y Simulación):** Scripts de carga y transformación de datos
-* **Power BI:** Dashboards con métricas de comportamiento y negocio
+* [**PostgreSQL (via Supabase)**](https://supabase.com/) 
+* [**MongoDB**](https://www.mongodb.com/) 
+* [**Neo4j**](https://neo4j.com/) 
+* [**Python (ETL y Simulación)** ](https://www.python.org/)
+* [**Power BI** ](https://www.microsoft.com/es-es/power-platform/products/power-bi)
 
 ## ⚙️ Cómo clonar y correr este proyecto
 

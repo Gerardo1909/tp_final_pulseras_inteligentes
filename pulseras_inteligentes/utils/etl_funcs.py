@@ -1,3 +1,9 @@
+"""
+Módulo para gestión procedimientos relacionados a ETL en el sistema de pulseras inteligentes.
+
+Este módulo proporciona diversas funciones relacionadas al manejo de flujo ETL y operaciones específicas.
+"""
+
 from datetime import datetime
 from dateutil import parser
 from typing import Optional, Union, Dict, Any
@@ -54,16 +60,16 @@ def configurar_logger(nombre: str = __name__, nivel: int = logging.INFO,
 # Logger por defecto para su uso en todo el módulo
 logger = configurar_logger()
 
-def registrar_ejecucion_etl(nombre_etl: str, estado: str, detalles: str = "") -> None:
+def registrar_ejecucion_proceso(nombre_proceso: str, estado: str, detalles: str = "") -> None:
     """
-    Registra la ejecución de un proceso ETL en el log.
+    Registra la ejecución de un proceso del sistema en el log.
     
     Args:
-        nombre_etl: Nombre del proceso ETL
+        nombre_proceso: Nombre del proceso
         estado: Estado de la ejecución ('INICIADO', 'COMPLETADO', 'ERROR')
         detalles: Detalles adicionales sobre la ejecución
     """
-    mensaje = f"ETL {nombre_etl}: {estado}"
+    mensaje = f"ETL {nombre_proceso}: {estado}"
     if detalles:
         mensaje += f" - {detalles}"
     
@@ -77,30 +83,30 @@ def registrar_ejecucion_etl(nombre_etl: str, estado: str, detalles: str = "") ->
         logger.info(mensaje)
         
 @contextmanager
-def manejo_errores_etl(nombre_etl: str, raise_exception: bool = True):
+def manejo_errores_proceso(nombre_proceso: str, raise_exception: bool = True):
     """
-    Manejador de contexto para capturar y registrar errores en procesos ETL.
+    Manejador de contexto para capturar y registrar errores en procesos del sistema.
     
     Args:
-        nombre_etl: Nombre del proceso ETL
+        nombre_proceso: Nombre del proceso que se ejecuta
         raise_exception: Si es True, re-lanza la excepción después de registrarla
         
     Ejemplo:
-        with manejo_errores_etl("ETL_CARGA_USUARIOS"):
+        with manejo_errores_proceso("ETL_CARGA_USUARIOS"):
             # código que puede lanzar excepciones
             extraer_datos()
             transformar_datos()
             cargar_datos()
     """
     try:
-        registrar_ejecucion_etl(nombre_etl, "INICIADO")
+        registrar_ejecucion_proceso(nombre_proceso, "INICIADO")
         yield
-        registrar_ejecucion_etl(nombre_etl, "COMPLETADO")
+        registrar_ejecucion_proceso(nombre_proceso, "COMPLETADO")
     except Exception as e:
         error_detallado = traceback.format_exc()
-        logger.error(f"Error en {nombre_etl}: {e}")
+        logger.error(f"Error en {nombre_proceso}: {e}")
         logger.debug(f"Detalles del error: {error_detallado}")
-        registrar_ejecucion_etl(nombre_etl, "ERROR", str(e))
+        registrar_ejecucion_proceso(nombre_proceso, "ERROR", str(e))
         if raise_exception:
             raise
 
@@ -109,7 +115,7 @@ def extraer_ultima_fecha_insercion_hechos(db_dw, nombre_tabla_hechos: str) -> Op
     Extrae la fecha de la última inserción en una tabla de hechos.
     
     Args:
-        db_dw: Conexión a la base de datos del Data Warehouse.
+        db_dw: Conexión a la base de datos.
         nombre_tabla_hechos: Nombre de la tabla de hechos.
         
     Returns:

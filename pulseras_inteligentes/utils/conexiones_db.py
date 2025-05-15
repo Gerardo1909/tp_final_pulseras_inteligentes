@@ -2,8 +2,7 @@
 Módulo para gestión de conexiones a bases de datos del sistema de pulseras inteligentes.
 
 Este módulo proporciona funciones para conectar con las diferentes bases de datos
-utilizadas en el proyecto: MongoDB para datos de sensores, Neo4j para el grafo de
-recomendaciones, y Supabase para datos transaccionales y el data warehouse.
+utilizadas en el proyecto.
 """
 
 from neo4j import GraphDatabase
@@ -11,15 +10,15 @@ from pymongo import MongoClient
 import supabase
 from dotenv import load_dotenv
 import os
-from typing import Optional, Any
-from .etl_funcs import logger
+from typing import Any
+from pulseras_inteligentes.utils.etl_funcs import logger
 
 # Carga de variables de entorno
 load_dotenv()
 
 # Credenciales y URLs de bases de datos
-DB_TRANSACCIONAL_URL = os.getenv("DB_TRANSACCIONAL_URL")
-DB_TRANSACCIONAL_API_KEY = os.getenv("DB_TRANSACCIONAL_API_KEY")
+DB_OPERACIONAL_URL = os.getenv("DB_OPERACIONAL_URL")
+DB_OPERACIONAL_API_KEY = os.getenv("DB_OPERACIONAL_API_KEY")
 MONGO_DB_URL = os.getenv("MONGO_DB_URL")
 DW_API_KEY = os.getenv("DW_API_KEY")
 DW_URL = os.getenv("DW_URL")
@@ -66,7 +65,7 @@ def conectar_db_grafo_usuarios() -> GraphDatabase.driver:
 
 def conectar_db_transacciones() -> Any:
     """
-    Establece conexión con la base de datos transaccional en Supabase.
+    Establece conexión con la base de datos operacional en Supabase.
     
     Returns:
         Cliente de conexión a Supabase.
@@ -75,7 +74,7 @@ def conectar_db_transacciones() -> Any:
         Exception: Si ocurre un error durante la conexión.
     """
     try:
-        supabase_client = supabase.create_client(DB_TRANSACCIONAL_URL, DB_TRANSACCIONAL_API_KEY)
+        supabase_client = supabase.create_client(DB_OPERACIONAL_URL, DB_OPERACIONAL_API_KEY)
         supabase_client.table('usuarios').select('*').execute()
         logger.info("Conexión con DB de transacciones establecida correctamente.")
         return supabase_client
@@ -107,7 +106,7 @@ if __name__ == "__main__":
     try:
         mongo_client = conectar_db_sensor_pulsera()
         neo4j_client = conectar_db_grafo_usuarios()
-        db_transaccional_client = conectar_db_transacciones()
+        db_operacional_client = conectar_db_transacciones()
         dw_client = conectar_DW()
         
         logger.info("Todas las conexiones establecidas correctamente.")
