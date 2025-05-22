@@ -5,7 +5,6 @@ Este módulo proporciona funciones para conectar con las diferentes bases de dat
 utilizadas en el proyecto.
 """
 
-from neo4j import GraphDatabase
 from pymongo import MongoClient
 import supabase
 from dotenv import load_dotenv
@@ -22,8 +21,6 @@ DB_OPERACIONAL_API_KEY = os.getenv("DB_OPERACIONAL_API_KEY")
 MONGO_DB_URL = os.getenv("MONGO_DB_URL")
 DW_API_KEY = os.getenv("DW_API_KEY")
 DW_URL = os.getenv("DW_URL")
-NEO4J_URI = os.getenv("NEO4J_URI")
-NEO4J_AUTH = (os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD"))
 
 def conectar_db_sensor_pulsera() -> MongoClient:
     """
@@ -42,25 +39,6 @@ def conectar_db_sensor_pulsera() -> MongoClient:
         return mongo_client
     except Exception as e:
         logger.error(f"Error al conectar con DB de sensores: {e}")
-        raise
-
-def conectar_db_grafo_usuarios() -> GraphDatabase.driver:
-    """
-    Establece conexión con la base de datos Neo4j para el grafo de usuarios.
-    
-    Returns:
-        GraphDatabase.driver: Driver de conexión a Neo4j.
-    
-    Raises:
-        Exception: Si ocurre un error durante la conexión.
-    """
-    try:
-        driver = GraphDatabase.driver(NEO4J_URI, auth=NEO4J_AUTH)
-        driver.verify_connectivity()
-        logger.info("Conexión con DB de grafo de usuarios establecida correctamente.")
-        return driver
-    except Exception as e:
-        logger.error(f"Error al conectar con DB de grafo de usuarios: {e}")
         raise
 
 def conectar_db_transacciones() -> Any:
@@ -105,7 +83,6 @@ if __name__ == "__main__":
     # Pruebas de conexión
     try:
         mongo_client = conectar_db_sensor_pulsera()
-        neo4j_client = conectar_db_grafo_usuarios()
         db_operacional_client = conectar_db_transacciones()
         dw_client = conectar_DW()
         

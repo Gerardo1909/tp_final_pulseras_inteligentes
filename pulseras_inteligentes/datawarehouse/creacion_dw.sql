@@ -1,6 +1,6 @@
--- CREACION DE MODELO DIMENSIONAL VENTAS
+-- CREACION DE DW
 
--- Se ingestan manuealmente
+-- se poblan manualmente
 
 CREATE TABLE "dim_plan" (
 	"id_plan" SERIAL PRIMARY KEY,
@@ -19,7 +19,12 @@ CREATE TABLE "dim_estado_pago" (
 	"descripcion" VARCHAR(50) NOT NULL
 );
 
--- Se ingestan los datos con scripts
+CREATE TABLE "dim_actividad" (
+	"id_actividad" SERIAL PRIMARY KEY,
+	"descripcion" VARCHAR(100) NOT NULL -- Actividades que el usuario puede hacer con la pulsera o la aplicacion
+);
+
+-- se poblan con scripts
 
 CREATE TABLE "dim_usuario" (
 	"id_usuario" INTEGER PRIMARY KEY,
@@ -55,3 +60,14 @@ CREATE TABLE "hechos_pagos" (
     CONSTRAINT fk_fecha FOREIGN KEY ("id_fecha") REFERENCES "dim_fecha"("id_fecha")
 );
 
+-- registra hechos para un día de un usuario correspondientes a actividad
+CREATE TABLE "hechos_actividad" (
+    "id_hecho" SERIAL PRIMARY KEY,
+    "id_usuario" INTEGER NOT NULL,
+    "id_actividad" INTEGER NOT NULL,  
+    "id_fecha" INTEGER NOT NULL, 
+	"hora_registro" TIME NOT NULL,       
+    CONSTRAINT fk_usuario_actividad FOREIGN KEY ("id_usuario") REFERENCES "dim_usuario"("id_usuario"),
+    CONSTRAINT fk_actividad FOREIGN KEY ("id_actividad") REFERENCES "dim_actividad"("id_actividad"),
+    CONSTRAINT fk_fecha_actividad FOREIGN KEY ("id_fecha") REFERENCES "dim_fecha"("id_fecha")
+);

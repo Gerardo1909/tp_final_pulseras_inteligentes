@@ -1,12 +1,17 @@
 # Trabajo Práctico Final - Base de datos (Licenciatura en Ciencia de Datos)
 
-## 📋 Enunciado del trabajo
+**Participantes del proyecto:**
 
-Este proyecto corresponde al trabajo práctico final de la materia *Base de Datos*, y tiene como objetivo la implementación de un sistema analítico realista utilizando un enfoque **políglota**, combinando al menos **un motor SQL** y **dos motores NoSQL**. La consigna propone el diseño de una arquitectura de inteligencia de negocios (BI), incluyendo un Data Warehouse, un sistema de recomendaciones y la construcción de dashboards. El trabajo integra procesos ETL, modelado dimensional (estrella o copo de nieve), y técnicas de minería de datos, simulando un caso empresarial completo.
+* Gerardo Toboso - getobosobarrios@estudiantes.unsam.edu.ar
+* Gianni Bevilacqua - gbevilacqua@estudiantes.unsam.edu.ar
+* Javier Spina - jaspina@estudiantes.unsam.edu.ar
+* Bautista Turri - Turribautista551@gmail.com
+
+Este proyecto corresponde al trabajo práctico final de la materia **Base de Datos** de la Lienciatura en Ciencia de Datos (1er cuatrimestre 2025). Tiene como objetivo la implementación de un sistema analítico realista utilizando un enfoque **políglota**, combinando al menos **un motor SQL** y **un motor NoSQL**. La consigna propone el diseño de una arquitectura de inteligencia de negocios (BI), incluyendo un Data Warehouse y la construcción de dashboards para realizar análisis de datos. El trabajo integra procesos ETL, modelado dimensional de tablas, y técnicas de minería de datos, simulando un caso empresarial completo.
 
 ## 🧠 Nuestro caso de negocio
 
-Somos parte del equipo de datos de la empresa **\[Nombre Empresa]**, una compañía que desarrolla una plataforma basada en **pulseras inteligentes** para monitorear métricas de salud y actividad física, al estilo de productos como [Whoop](https://www.whoop.com/us/en/). Nuestra responsabilidad es diseñar la infraestructura de datos que soporte tanto el análisis de negocio como el motor de recomendaciones personalizado.
+Somos parte del **equipo de datos** de una compañía que desarrolla una plataforma basada en **pulseras inteligentes** para monitorear métricas de salud y actividad física, al estilo de productos como [Whoop](https://www.whoop.com/us/en/). Nuestra responsabilidad es diseñar la infraestructura de datos que soporte tanto el análisis de negocio como el flujo de información constante.
 
 Las pulseras inteligentes registran información biométrica como:
 
@@ -21,20 +26,14 @@ Además, se recolectan métricas de uso de la aplicación móvil asociada:
 * Interacciones con botones y formularios
 * Uso de funcionalidades específicas
 
-El valor agregado del producto radica en su **sistema de recomendación personalizado**, que sugiere rutinas, descansos y hábitos saludables en función del comportamiento del usuario, con el objetivo de maximizar su bienestar y fomentar la fidelización.
-
-Este ecosistema se completa con la **aplicación móvil**, cuya usabilidad también es monitoreada para detectar oportunidades de mejora y retroalimentar al equipo de desarrollo.
-
 ## 🧾 Requerimientos clave
 
 Desde la perspectiva del área de datos, se establecen los siguientes requerimientos:
 
 * **Modelado de un Data Warehouse** con enfoque dimensional (estrella o copo de nieve).
 * **Implementación de procesos ETL** para la carga de datos provenientes de múltiples orígenes heterogéneos (SQL y NoSQL).
-* **Diseño de un sistema de recomendaciones** basado en grafos y relaciones entre entidades (usuarios, objetivos, actividades).
-* **Simulación de datos sintéticos** en cada capa del sistema, con scripts de generación y carga.
 * **Dashboard interactivo en Power BI**, con al menos 4 elementos visuales claves para la toma de decisiones.
-* **Separación modular del código por subsistema**: operacional, de recomendación y analítico.
+* **Separación modular del código por subsistema**: operacional y analítico.
 
 ## 🧱 Flujo de datos del Sistema
 
@@ -50,13 +49,11 @@ El flujo de datos de la aplicación está organizado en tres subsistemas princip
    las métricas biométricas recolectadas por las pulseras como las interacciones con la aplicación por parte de los usuarios (como tiempo de pantalla o uso de funciones).
 
 2. **Data Warehouse**
-   Los datos operacionales son procesados mediante un flujo ETL y consolidados en un **Data Warehouse** basado en **persistencia políglota**. El objetivo 
-   del mismo es guardar toda la información histórica del negocio para luego poder ser explotada por analistas y así mejorar continuamente el producto. El mismo se encuentra conformado por las siguientes bases de datos:
+   Los datos operacionales son procesados mediante un flujo ETL y consolidados en un **Data Warehouse**. El objetivo 
+   del mismo es guardar toda la información histórica del negocio para luego poder ser explotada por analistas y así mejorar continuamente el producto. El mismo se encuentra alojado en una base de datos **PostgreSQL (a través de Supabase)** la cual registra dos tipos de hechos de especial interés para la compañia:
 
-   * **Una PostgreSQL (a través de Supabase)** la cual contiene el modelo dimensional utilizado para analizar hechos asociados a ventas/suscripciones del producto.
-   * **Una MongoDB** que contiene una serie de colecciones las cuales están orientadas a responder preguntas de negocio en cuanto a usabilidad del producto y aplicación móvil.
-   * **Y otra Neo4j** que contiene nodos los cuales representan usuarios, actividades físicas y objetivos relacionados a salud, además de relaciones
-   entre los mismos que definen comportamientos en cuanto a uso de la pulsera en sí.  
+   * **Hechos asociados a ventas/suscripciones del producto**.
+   * **Hechos asociados a usabilidad del producto**, esto hace referencia a uso de la aplicación por parte de los usuarios y el uso de la pulsera por igual.
 
 3. **Capa de Business Inteligence**
    Una vez que los datos están consolidados en el **Data Warehouse** estos están listos para ser analizados y así obtener insights valiosos sobre el producto 
@@ -64,7 +61,6 @@ El flujo de datos de la aplicación está organizado en tres subsistemas princip
 
    * Análisis de ventas del producto y suscripciones a lo largo del tiempo por parte de usuarios.
    * Análisis de usabilidad de la pulsera y aplicación móvil en tiempo real.
-   * Desarrollo de sistemas de recomendación para mejorar la experiencia del usuario y garantizar fidelidad.
 
 
 ## 📂 Estructura del Proyecto
@@ -75,10 +71,7 @@ pulseras_inteligentes/
 │   ├── ingesta_sensor_mongo/      # Scripts para ingesta de datos de sensores y aplicación móvil en MongoDB
 │   └── transacciones_postgres/    # Scripts para gestión de transacciones comerciales en PostgreSQL
 │
-├── datawarehouse/                 # Data Warehouse (persistencia políglota)
-│   ├── dwh_ventas/                # Modelo dimensional para análisis de ventas (PostgreSQL)
-│   ├── dwh_usabilidad/            # Colecciones para análisis de usabilidad (MongoDB)
-│   └── sistema_recomendacion/     # Sistema de recomendación basado en grafos (Neo4j)
+├── datawarehouse/                 # Data Warehouse (Hechos de ventas y usabilidad)
 │
 ├── business_inteligence/          # Capa de Business Intelligence
 │   └── dashboards/                # Dashboards de Power BI
@@ -92,7 +85,6 @@ pulseras_inteligentes/
 
 * [**PostgreSQL (via Supabase)**](https://supabase.com/) 
 * [**MongoDB**](https://www.mongodb.com/) 
-* [**Neo4j**](https://neo4j.com/) 
 * [**Python (ETL y Simulación)** ](https://www.python.org/)
 * [**Power BI** ](https://www.microsoft.com/es-es/power-platform/products/power-bi)
 

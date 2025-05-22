@@ -1,4 +1,4 @@
--- POBLADO DE TABLAS DE DIMENSIONES 
+-- POBLADO DE TABLAS DE DIMENSIONES DW
 
 INSERT INTO "dim_plan" ("nombre_plan", "descripcion", "duracion_dias") VALUES
 ('Básico', 'Acceso limitado a funcionalidades básicas.', 30),
@@ -14,3 +14,16 @@ INSERT INTO "dim_estado_pago" ("descripcion") VALUES
 ('Aprobado'),
 ('Pendiente'),
 ('Rechazado');
+
+INSERT INTO "dim_actividad" ("descripcion") VALUES
+('tiempo_pantalla'),
+('click_boton'),
+('envio_formulario'),
+('uso_funcionalidad'),
+('caminar'),
+('correr'),
+('ciclismo'),
+('entrenamiento_fuerza'),
+('yoga'),
+('reposo'),
+('sueño');
