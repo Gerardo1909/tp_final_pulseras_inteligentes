@@ -7,31 +7,35 @@ CREATE OR REPLACE FUNCTION segmentar_usuarios_por_actividad(
 RETURNS TABLE (
     id_usuario INT,
     nombre VARCHAR,
-    cantidad_actividades BIGINT -- Se usa BIGINT porque COUNT() devuelve BIGINT
+    cantidad_total BIGINT,
+    cantidad_biometricos BIGINT,
+    cantidad_aplicacion BIGINT
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT
-        dim_usuario.id_usuario,
-        dim_usuario.nombre,
-        actividades.conteo_actividades AS conteo_actividades
-    FROM
-        dim_usuario
-    JOIN (
+    WITH actividades_contadas AS (
         SELECT
-            hechos_actividad.id_usuario,
-            COUNT(hechos_actividad.id_hecho) AS conteo_actividades
+            ha.id_usuario,
+            COUNT(*) AS cantidad_total,
+            COUNT(CASE WHEN da.tipo_dato = 'Dato Biométrico' THEN 1 END) AS cantidad_biometricos,
+            COUNT(CASE WHEN da.tipo_dato = 'Dato Aplicación' THEN 1 END) AS cantidad_aplicacion
         FROM
-            hechos_actividad 
-        GROUP BY
-            hechos_actividad.id_usuario
-        HAVING COUNT(hechos_actividad.id_hecho) >= min_actividades
-
-    ) AS actividades ON dim_usuario.id_usuario = actividades.id_usuario
-    ORDER BY conteo_actividades DESC;
+            hechos_actividad ha
+        JOIN dim_actividad da ON ha.id_actividad = da.id_actividad
+        GROUP BY ha.id_usuario
+        HAVING COUNT(*) >= min_actividades
+    )
+    SELECT
+        u.id_usuario,
+        u.nombre,
+        a.cantidad_total,
+        a.cantidad_biometricos,
+        a.cantidad_aplicacion
+    FROM actividades_contadas a
+    JOIN dim_usuario u ON u.id_usuario = a.id_usuario
+    ORDER BY a.cantidad_total DESC;
 END;
 $$ LANGUAGE plpgsql;
-
 
 -- ejemplos de uso:
 

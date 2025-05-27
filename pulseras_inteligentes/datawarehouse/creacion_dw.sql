@@ -21,6 +21,7 @@ CREATE TABLE "dim_estado_pago" (
 
 CREATE TABLE "dim_actividad" (
 	"id_actividad" SERIAL PRIMARY KEY,
+	"tipo_dato" VARCHAR(50) NOT NULL, 
 	"descripcion" VARCHAR(100) NOT NULL -- Actividades que el usuario puede hacer con la pulsera o la aplicacion
 );
 

@@ -15,15 +15,15 @@ INSERT INTO "dim_estado_pago" ("descripcion") VALUES
 ('Pendiente'),
 ('Rechazado');
 
-INSERT INTO "dim_actividad" ("descripcion") VALUES
-('tiempo_pantalla'),
-('click_boton'),
-('envio_formulario'),
-('uso_funcionalidad'),
-('caminar'),
-('correr'),
-('ciclismo'),
-('entrenamiento_fuerza'),
-('yoga'),
-('reposo'),
-('sueño');
+INSERT INTO "dim_actividad" ("tipo_dato", "descripcion") VALUES
+('Dato Aplicación', 'tiempo_pantalla'),
+('Dato Aplicación', 'click_boton'),
+('Dato Aplicación', 'envio_formulario'),
+('Dato Aplicación', 'uso_funcionalidad'),
+('Dato Biométrico', 'caminar'),
+('Dato Biométrico', 'correr'),
+('Dato Biométrico', 'ciclismo'),
+('Dato Biométrico', 'entrenamiento_fuerza'),
+('Dato Biométrico', 'yoga'),
+('Dato Biométrico', 'reposo'),
+('Dato Biométrico', 'sueño');
