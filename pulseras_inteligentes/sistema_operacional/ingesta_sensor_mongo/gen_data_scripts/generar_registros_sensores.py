@@ -214,8 +214,8 @@ def main():
             
             logger.info(f"Iniciando generación de datos para {len(usuarios)} usuarios")
             
-            # Generación de datos para 10 días
-            n_dias = 10
+            # Generación de datos para 130 días
+            n_dias = 130
             total_registros = generar_datos_actividades(n_dias, usuarios, datos_db_sensor)
             
             logger.info(f"{nombre_proceso}: Proceso completado con éxito. {total_registros} registros generados en total.")
