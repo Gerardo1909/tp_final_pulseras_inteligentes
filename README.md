@@ -11,29 +11,46 @@ Este proyecto corresponde al trabajo práctico final de la materia **Base de Dat
 
 ## 🧠 Nuestro caso de negocio
 
-Somos parte del **equipo de datos** de una compañía que desarrolla una plataforma basada en **pulseras inteligentes** para monitorear métricas de salud y actividad física, al estilo de productos como [Whoop](https://www.whoop.com/us/en/). Nuestra responsabilidad es diseñar la infraestructura de datos que soporte tanto el análisis de negocio como el flujo de información constante.
+Una compañía tecnológica está desarrollando una plataforma integral basada en **dispositivos portátiles inteligentes**. Estas pulseras monitorean continuamente diversos **parámetros biométricos** relacionados con la salud y la actividad física de los usuarios.  
+Los dispositivos capturan datos como:  
+- **Frecuencia cardíaca**
+- **Calidad del sueño**
+- **Niveles de actividad**, entre otros.
 
-Las pulseras inteligentes registran información biométrica como:
+Además, se integran con una **aplicación móvil** que permite a los usuarios:
+- Interactuar y visualizar información
+- Recibir recomendaciones personalizadas
+- Gestionar sus suscripciones
 
-* Actividad física
-* Duración y calidad del sueño
-* Tiempo en reposo
-* Niveles de glucosa
+Nosotros, como equipo, estamos encargados del **área de datos** del proyecto. Nuestra metodología de trabajo está basada en **Scrum** (metodología ágil), lo que nos permite iterar sobre la implementación en ciclos de tiempo determinados.  
 
-Además, se recolectan métricas de uso de la aplicación móvil asociada:
+En una primera instancia, planeamos llegar a una versión **MVP** (*minimum viable product: mínimo producto viable*) para que la empresa pueda:
+- Analizar resultados
+- Tomar decisiones informadas sobre el futuro del producto
+- Ajustar aspectos clave del sistema y de los datos a consumir por las diferentes áreas
 
-* Tiempo de pantalla
-* Interacciones con botones y formularios
-* Uso de funcionalidades específicas
+El principal desafío es el **diseño y desarrollo de una infraestructura de datos robusta y escalable**, que pueda integrar y soportar múltiples fuentes de información:
+- **Sistema transaccional** que gestiona suscripciones, pagos y perfiles de usuarios
+- **Flujo constante y masivo (en streaming)** de los datos biométricos generados por las pulseras
+- **Información de interacción** de los usuarios con la aplicación móvil (eventos de navegación, uso de funcionalidades, comportamiento en la plataforma)
+
 
 ## 🧾 Requerimientos clave
 
-Desde la perspectiva del área de datos, se establecen los siguientes requerimientos:
+La solución que requiere la empresa implica **unificar y consolidar toda la información** detallada anteriormente en un **Data Warehouse** que funcione como el núcleo central de análisis de datos.  
+Esto permite a la empresa:
+- Obtener **métricas clave** y **parámetros de desempeño** del negocio (por ejemplo, tendencias de suscripción)
+- Acceder a **patrones de uso** de las pulseras y la aplicación
+- Consultar **indicadores de salud agregados** (tanto la empresa como los usuarios)
 
-* **Modelado de un Data Warehouse** con enfoque dimensional (estrella o copo de nieve).
-* **Implementación de procesos ETL** para la carga de datos provenientes de múltiples orígenes heterogéneos (SQL y NoSQL).
-* **Dashboard interactivo en Power BI**, con al menos 4 elementos visuales claves para la toma de decisiones.
-* **Separación modular del código por subsistema**: operacional y analítico.
+Con esta implementación, se contará con un **modelo de datos integrado** que facilitará:
+- La generación de **predicciones** y **modelos analíticos avanzados**
+- La **optimización de la experiencia del usuario**
+- La **mejora de la retención**
+- La **detección de patrones de salud relevantes**
+- El **respaldo a la toma de decisiones estratégicas** a nivel comercial y operativo
+
+De esta forma, se establece una **infraestructura capaz de soportar tanto análisis históricos como actuales**, y la construcción de **reportes y dashboards** que reflejen el estado y evolución del negocio y la salud de sus usuarios.
 
 ## 🧱 Flujo de datos del Sistema
 
@@ -74,7 +91,8 @@ pulseras_inteligentes/
 ├── datawarehouse/                 # Data Warehouse (Hechos de ventas y usabilidad)
 │
 ├── business_inteligence/          # Capa de Business Intelligence
-│   └── dashboards/                # Dashboards de Power BI
+│   ├── dashboards/                # Dashboards de Power BI
+│   └── funcionalidades/           # Funciones desarrolladas en PostgreSQL para el análisis de datos
 │
 ├── utils/                         # Utilidades compartidas
 │   ├── conexiones_db.py           # Funciones de conexión a bases de datos

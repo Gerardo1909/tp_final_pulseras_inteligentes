@@ -1,7 +1,9 @@
 # Documentación de base de datos operacional para transacciones comerciales (PostgreSQL)
 
 Esta documentación detalla la estructura de la base de datos operacional que soporta operaciones de negocio correspondientes a manejo
-de usuarios, suscripciones, pagos, etc. 
+de usuarios, suscripciones, pagos, etc. A continuación mostramos una imagen de su diagrama entidad-relación: 
+
+![DER sistema operacional](/img/DER_sistema_operacional_pulseras_inteligentes.png)
 
 Para estructurar esta documentación, hemos clasificado las tablas en grupos según el rol que desempeñan dentro de la base de datos. Estos grupos se dividen en: **entidades principales y entidades categóricas**.
 

@@ -1,6 +1,8 @@
 # Documentación para el Data Warehouse (PostgreSQL)
 
-Esta documentación detalla la estructura del Data Warehouse diseñado para el sistema de Pulseras Inteligentes. El Data Warehouse es un componente fundamental para el análisis de datos y la mejora constante de la aplicación.
+Esta documentación detalla la estructura del Data Warehouse diseñado para el sistema de Pulseras Inteligentes. El Data Warehouse es un componente fundamental para el análisis de datos y la mejora constante de la aplicación. A continuación mostramos una imagen de su diagrama entidad-relación: 
+
+![DER Data Warehouse](/img/DER_datawarehouse_pulseras_inteligentes.png)
 
 Para estructurar esta documentación, hemos clasificado las tablas en grupos según su rol: **tablas de dimensiones y tablas de hechos**.
 
