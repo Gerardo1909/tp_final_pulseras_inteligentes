@@ -2,7 +2,8 @@
 -- Segmentar usuarios únicamente por su nivel de actividad, medido por el número de registros en la tabla hechos_actividad.
 
 CREATE OR REPLACE FUNCTION segmentar_usuarios_por_actividad(
-    min_actividades INT
+    min_actividades INT,
+    max_actividades INT
 )
 RETURNS TABLE (
     id_usuario INT,
@@ -23,7 +24,7 @@ BEGIN
             hechos_actividad ha
         JOIN dim_actividad da ON ha.id_actividad = da.id_actividad
         GROUP BY ha.id_usuario
-        HAVING COUNT(*) >= min_actividades
+        HAVING COUNT(*) >= min_actividades AND COUNT(*) <= max_actividades
     )
     SELECT
         u.id_usuario,
@@ -39,11 +40,9 @@ $$ LANGUAGE plpgsql;
 
 -- ejemplos de uso:
 
--- Segmentar usuarios con al menos 10 registros de actividad
-SELECT * FROM segmentar_usuarios_por_actividad(10);
+-- Segmentar usuarios con entre 500 y 600 registros de actividad
+SELECT * FROM segmentar_usuarios_por_actividad(500, 600);
 
--- Segmentar usuarios con al menos 5 registros de actividad
-SELECT * FROM segmentar_usuarios_por_actividad(5);
+-- Segmentar usuarios con entre 200 y 300 registros de actividad
+SELECT * FROM segmentar_usuarios_por_actividad(200, 300);
 
--- Segmentar usuarios con al menos 20 registros de actividad
-SELECT * FROM segmentar_usuarios_por_actividad(20);
