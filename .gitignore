@@ -46,3 +46,10 @@ MANIFEST
 
 # Archivos de configuración local
 *.env
+
+# Archivos auxiliares de LaTeX
+informe/*.aux
+informe/*.fdb_latexmk
+informe/*.fls
+informe/*.log
+informe/*.synctex.gz
