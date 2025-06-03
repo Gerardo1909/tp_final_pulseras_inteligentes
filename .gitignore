@@ -6,6 +6,7 @@
 # Archivos de caché
 __pycache__/
 .cache/
+.DS_Store
 
 # Logs y archivos de registro
 logs/*.log
@@ -53,3 +54,4 @@ informe/*.fdb_latexmk
 informe/*.fls
 informe/*.log
 informe/*.synctex.gz
+informe/*.out

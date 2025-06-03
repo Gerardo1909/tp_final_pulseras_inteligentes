@@ -1,0 +1,417 @@
+
+
+\section{Ejemplos de operaciones en el DW}
+
+Presentamos las operaciones clave realizadas sobre el Data Warehouse, enfocadas en {\bfseries los usuarios}, ya que los consideramos el núcleo del sistema por su rol transversal en la generación de datos transaccionales y biométricos. Estas operaciones se ilustran con consultas y procesos relacionados con gestión de datos, particularmente sobre las tablas de hechos y dimensiones asociadas al comportamiento del usuario, como la tabla \texttt{dim\_usuario} y las tablas de hechos \texttt{hechos\_actividad} y \texttt{hechos\_pagos}.
+\subsection{Creación}
+Cuando un nuevo usuario se registra y contrata un plan a través del sistema transaccional, su información se almacena de forma estructurada en dicha base. Paralelamente, la información del usuario se guarda de forma resumida en la base de datos MongoDB (nombre, id y fecha de registro). Esto es para poder referenciar los registros que este genere posteriormente mediante el uso de la pulsera inteligente y la aplicación móvil.
+
+\begin{lstlisting}[language=Python]
+    def main():
+    """
+    Función principal que coordina el proceso ETL de carga de la dimensión de usuarios.
+    """
+    nombre_proceso = "ETL_CARGAR_DIM_USUARIO"
+
+    with manejo_errores_proceso(nombre_proceso):
+        # Conexiones a bases de datos
+        db_transacciones = conectar_db_transacciones()
+        db_dw = conectar_DW()
+
+        # Verificación de la última fecha de inserción
+        ultima_fecha_registro = extraer_ultima_fecha_insercion_dim_usuarios(db_dw)
+
+        # Colocamos una fecha por defecto para la primera carga
+        if not ultima_fecha_registro:
+            ultima_fecha_registro = "2000-01-01T00:00:00Z"
+            logger.info(f"Usando fecha por defecto para carga: {ultima_fecha_registro}")
+
+        # Extracción de usuarios nuevos
+        usuarios_nuevos = extraer_usuarios_por_fecha(db_transacciones, ultima_fecha_registro)
+
+        # Inserción de usuarios en la dimensión
+        if usuarios_nuevos:
+            insertar_usuarios_dim(db_dw, usuarios_nuevos)
+            logger.info(f"{nombre_proceso}: Proceso completado con éxito.")
+        else:
+            logger.info("No hay usuarios nuevos para insertar en la dimensión.")
+
+\end{lstlisting}
+
+Luego, cada cierto periodo de tiempo, se ejecuta un proceso de integración que forma parte del pipeline ETL. El objetivo es:
+
+\paragraph{Extraer} nuevos registros de usuarios desde la base de datos transaccional.
+
+\begin{lstlisting}[language=Python]
+    def extraer_ultima_fecha_insercion_dim_usuarios(db_dw):
+    """
+    Obtiene la fecha del último registro insertado en la tabla de dimensión de usuarios.
+    
+    Args:
+        db_dw: Conexión a la base de datos.
+        
+    Returns:
+        str: Fecha del último registro o None si no hay registros.
+    """
+    try:
+        respuesta = (
+            db_dw.table("dim_usuario")
+            .select("fecha_registro")
+            .order("fecha_registro", desc=True)
+            .limit(1)
+            .execute()
+        )
+        
+        if not respuesta.data:
+            logger.info("No existen registros previos en la dimensión de usuarios.")
+            return None
+            
+        ultima_fecha = respuesta.data[0]["fecha_registro"]
+        logger.info(f"Última fecha de inserción en dimensión usuarios: {ultima_fecha}")
+        return ultima_fecha
+    except Exception as e:
+        logger.error(f"Error al extraer última fecha de inserción en dim_usuario: {e}")
+        raise
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python]
+    def extraer_usuarios_por_fecha(db_transacciones, fecha_registro):
+    """
+    Extrae usuarios de la base de datos operacional que fueron registrados
+    después de la fecha especificada.
+    
+    Args:
+        db_transacciones: Conexión a la base de datos operacional.
+        fecha_registro (str): Fecha de registro a partir de la cual extraer usuarios.
+        
+    Returns:
+        list: Lista de diccionarios con datos de usuarios.
+    """
+    try:
+        respuesta = (
+            db_transacciones.table("usuarios")
+            .select(
+                """
+                id_usuario,
+                nombre,
+                genero:genero(genero),
+                fecha_registro,
+                fecha_nacimiento
+                """
+            )
+            .gt("fecha_registro", fecha_registro)
+            .execute()
+        )
+        
+        usuarios = respuesta.data
+        logger.info(f"Extraídos {len(usuarios)} usuarios nuevos desde la base operacional.")
+        return usuarios
+    except Exception as e:
+        logger.error(f"Error al extraer usuarios por fecha: {e}")
+        raise
+\end{lstlisting}
+
+\paragraph{Cargar} los registros depurados en la tabla \texttt{dim\_usuario} del Data Warehouse, donde el registro correspondiente queda preparado para poder {\bfseries relacionarlo con hechos} que luego el usuario genere.
+
+\begin{lstlisting}[language=Python]
+    def insertar_usuarios_dim(db_dw, usuarios):
+    """
+    Inserta usuarios en la dimensión de usuarios de la base de datos dimensional.
+    
+    Args:
+        db_dw: Conexión a la base de datos.
+        usuarios (list): Lista de diccionarios con datos de usuarios a insertar.
+        
+    Returns:
+        int: Número de usuarios insertados correctamente.
+    """
+    contador_exito = 0
+    contador_error = 0
+    
+    for usuario in usuarios:
+        try:
+            db_dw.table("dim_usuario").insert(
+                {
+                    "id_usuario": usuario["id_usuario"],
+                    "nombre": usuario["nombre"],
+                    "genero": usuario["genero"]["genero"],
+                    "fecha_registro": usuario["fecha_registro"],
+                    "fecha_nacimiento": usuario["fecha_nacimiento"],
+                }
+            ).execute()
+            logger.info(f"Usuario {usuario['nombre']} (ID: {usuario['id_usuario']}) insertado en dim_usuario.")
+            contador_exito += 1
+        except Exception as e:
+            logger.error(f"Error al insertar usuario {usuario['nombre']} (ID: {usuario['id_usuario']}) en dim_usuario: {e}")
+            contador_error += 1
+    
+    logger.info(f"Dimensión Usuarios: {contador_exito} usuarios insertados, {contador_error} errores.")
+    return contador_exito
+\end{lstlisting}
+
+Este flujo garantiza que la dimensión de usuarios se mantenga actualizada y alineada con las fuentes operativas, permitiendo obtener indicadores como la evolución del número de usuarios activos, la distribución por tipo de plan, o algún otro tipo de segmentación.
+
+\subsection{Eliminación}
+En este sistema no se eliminan registros de forma definitiva con fines históricos y analíticos, salvo excepciones. En lugar de eliminar físicamente los registros de usuarios, se emplea una política de {\bfseries borrado lógico} mediante el análisis de suscripciones activas por parte de los usuarios, que indica si el usuario sigue activo, se ha dado de baja o presenta un estado inactivo. Esta estrategia permite conservar el historial completo de interacciones y mantener la integridad de los análisis longitudinales, como el cálculo de tasas de retención o el análisis del ciclo de vida del cliente.
+
+Dentro de las excepciones, contamos el borrado por motivos de cumplimiento de normativas vigentes y cumplimiento de lo acordado entre cada usuario y la empresa por medio de los Términos y Condiciones del uso de la pulsera (a delimitar por el equipo Legal de la empresa). Las normativas que podemos tener en cuenta son, por ejemplo, la Ley de Protección de Datos Personales en Argentina (Ley 25.326), GDPR en Europa y el CCPA en California, Estados Unidos. Además, por motivos de límite en las suscripciones activas a las bases de datos, se puede proceder a la eliminación de información, pero todo esto está fuera del alcance del MVP. Sugerimos implementar a futuro los métodos que guardaran información anonimizada y agregada del uso de las pulseras y la aplicación.
+\subsection{Inserción}
+\subsubsection{Contexto y flujo ETL}
+Una vez que un usuario ha sido registrado en la dimensión \texttt{dim\_usuario} del Data Warehouse y ha comenzado a interactuar con la aplicación y la pulsera inteligente, se genera un flujo constante de datos biométricos (como actividad física, sueño o niveles de glucosa) y de uso de la aplicación móvil. Esta información se almacena inicialmente en la base de datos MongoDB, en formato semiestructurado.
+
+\begin{lstlisting}
+    _id: ObjectId('6838bf11a14861129921861a')
+    id_usuario: 1
+    tipo_registro: "actividad"
+    timestamp: "2025-05-29T08:21:53.508+00:00"
+    datos:
+        tipo_actividad: "correr"
+        duracion_min: 119
+        distancia_km: 11.9
+        pasos: 13622
+        calorias_quemadas: 176
+        repeticiones: null
+        peso_levantado_kg: null
+        ritmo_cardiaco_prom: 136
+
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python]
+    def main():
+    """
+    Función principal que coordina el proceso ETL de carga de hechos de actividad.
+    """
+    nombre_proceso = "ETL_CARGAR_HECHOS_ACTIVIDAD"
+    
+    with manejo_errores_proceso(nombre_proceso):
+        # Conexiones a bases de datos
+        db_sensor_pulsera = conectar_db_sensor_pulsera()
+        db_dw = conectar_DW()
+        
+        try:
+            # Obtención de usuarios
+            usuarios = list(db_sensor_pulsera.pulseras_inteligentes.usuarios_sensor.find())
+            
+            # Obtención de la última fecha de carga
+            ultima_fecha_transaccion = extraer_ultima_fecha_insercion_hechos(db_dw, 'hechos_actividad')
+            
+            # Fecha por defecto para primera carga
+            if not ultima_fecha_transaccion:
+                ultima_fecha_transaccion = "2000-01-01T00:00:00Z"
+                logger.info(f"Usando fecha por defecto para primera carga: {ultima_fecha_transaccion}")
+            
+            # Conversión a formato datetime para compatibilidad con mongo
+            if isinstance(ultima_fecha_transaccion, str):
+                try:
+                    ultima_fecha_transaccion = datetime.fromisoformat(ultima_fecha_transaccion.replace("Z", "+00:00"))
+                except Exception as e:
+                    logger.error(f"Error convirtiendo fecha: {e}")
+            
+            # Contadores para el resumen
+            total_actividad_fisica = 0
+            total_actividad_aplicacion = 0
+            
+            # Procesamiento por usuario
+            for usuario in usuarios:
+                id_usuario = usuario["id_usuario"]
+                
+                # Procesamiento de actividad física
+                actividades_fisicas = extraer_actividad_fisica(db_sensor_pulsera, id_usuario, ultima_fecha_transaccion)
+                registros_act_fisica = procesar_actividades_fisicas(db_dw, actividades_fisicas, id_usuario)
+                total_actividad_fisica += registros_act_fisica
+                
+                # Procesamiento de uso de aplicación
+                actividades_aplicacion = extraer_actividad_aplicacion(db_sensor_pulsera, id_usuario, ultima_fecha_transaccion)
+                registros_act_aplicacion = procesar_actividades_aplicacion(db_dw, actividades_aplicacion, id_usuario)
+                total_actividad_aplicacion += registros_act_aplicacion
+            
+            # Resumen final
+            logger.info(f"Carga completada: {total_actividad_fisica} registros de actividad física, " 
+                        f"{total_actividad_aplicacion} registros de actividad de aplicación")
+        finally:
+            # Cierre de conexiones
+            db_sensor_pulsera.close()
+\end{lstlisting}
+
+Con frecuencia periódica, se ejecuta un proceso ETL que {\bfseries extrae} los registros recientes desde MongoDB, filtrando por eventos biométricos y de interacción relevantes.
+
+\begin{lstlisting}[language=Python]
+    def extraer_actividad_fisica(db_sensor_pulsera, id_usuario, fecha_base):
+    """
+    Extrae registros de actividad física para un usuario desde MongoDB,
+    posteriores a una fecha determinada.
+    
+    Args:
+        db_sensor_pulsera: Conexión a la base de datos MongoDB.
+        id_usuario (int): ID del usuario.
+        fecha_base (datetime): Fecha a partir de la cual extraer registros.
+        
+    Returns:
+        list: Lista de documentos con datos de actividad física.
+    """
+    try:
+        datos_db_sensor = db_sensor_pulsera.pulseras_inteligentes.datos_sensor
+        
+        actividades = list(datos_db_sensor.find({
+            "id_usuario": id_usuario,
+            "tipo_registro": "actividad", 
+            "timestamp": {"$gt": fecha_base}
+        }))
+        
+        logger.debug(f"Extraídos {len(actividades)} registros de actividad física para usuario {id_usuario}")
+        return actividades
+    except Exception as e:
+        logger.error(f"Error al extraer actividad física para usuario {id_usuario}: {e}")
+        return []
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python]
+    def extraer_actividad_aplicacion(db_sensor_pulsera, id_usuario, fecha_base):
+    """
+    Extrae registros de uso de aplicación para un usuario desde MongoDB,
+    posteriores a una fecha determinada.
+    
+    Args:
+        db_sensor_pulsera: Conexión a la base de datos MongoDB.
+        id_usuario (int): ID del usuario.
+        fecha_base (datetime): Fecha a partir de la cual extraer registros.
+        
+    Returns:
+        list: Lista de documentos con datos de uso de aplicación.
+    """
+    try:
+        datos_db_aplicacion = db_sensor_pulsera.pulseras_inteligentes.datos_aplicacion
+        
+        actividades = list(datos_db_aplicacion.find({
+            "id_usuario": id_usuario,
+            "timestamp": {"$gt": fecha_base}
+        }))
+        
+        logger.debug(f"Extraídos {len(actividades)} registros de actividad de aplicación para usuario {id_usuario}")
+        return actividades
+    except Exception as e:
+        logger.error(f"Error al extraer actividad de aplicación para usuario {id_usuario}: {e}")
+        return []
+\end{lstlisting}
+
+\paragraph{Transforma} los datos, mapeando los atributos de actividad y de tiempo a los identificadores definidos en el modelo dimensional (por ejemplo, \texttt{id\_usuario}, \texttt{id\_actividad} e \texttt{id\_fecha}), y normalizando los formatos según el esquema del Data Warehouse.
+
+\begin{lstlisting}[language=Python]
+    def procesar_actividades_fisicas(db_dw, actividades, id_usuario):
+    """
+    Procesa y carga registros de actividad física en la tabla de hechos.
+    
+    Args:
+        db_dw: Conexión al Data Warehouse.
+        actividades (list): Lista de documentos con datos de actividad física.
+        id_usuario (int): ID del usuario.
+        
+    Returns:
+        int: Número de registros insertados correctamente.
+    """
+    contador = 0
+    
+    for actividad in actividades:
+        # Nombre e ID de la actividad
+        nombre_actividad = actividad["datos"]["tipo_actividad"]
+        id_actividad = obtener_id_actividad(db_dw, nombre_actividad)
+        
+        # ID de fecha y hora de la actividad
+        id_fecha = obtener_id_fecha(db_dw, actividad["timestamp"])
+        hora_actividad = extraer_hora_fecha(actividad["timestamp"])
+        
+        # Inserción del hecho
+        if insertar_hecho_actividad(db_dw, id_usuario, id_actividad, id_fecha, hora_actividad):
+            contador += 1
+    
+    return contador
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python]
+    def procesar_actividades_aplicacion(db_dw, actividades, id_usuario):
+    """
+    Procesa y carga registros de uso de aplicación en la tabla de hechos.
+    
+    Args:
+        db_dw: Conexión al Data Warehouse.
+        actividades (list): Lista de documentos con datos de uso de aplicación.
+        id_usuario (int): ID del usuario.
+        
+    Returns:
+        int: Número de registros insertados correctamente.
+    """
+    contador = 0
+    
+    for actividad in actividades:
+        # Nombre e ID de la actividad
+        nombre_actividad = actividad["tipo_evento"]
+        id_actividad = obtener_id_actividad(db_dw, nombre_actividad)
+        
+        # ID de fecha y hora de la actividad
+        id_fecha = obtener_id_fecha(db_dw, actividad["timestamp"])
+        hora_actividad = extraer_hora_fecha(actividad["timestamp"])
+        
+        # Inserción del hecho
+        if insertar_hecho_actividad(db_dw, id_usuario, id_actividad, id_fecha, hora_actividad):
+            contador += 1
+    
+    return contador
+
+\end{lstlisting}
+
+\paragraph{Carga} la información procesada en la tabla de hechos: \texttt{hechos\_actividad}.
+
+\begin{lstlisting}[language=Python]
+    def insertar_hecho_actividad(db_dw, id_usuario, id_actividad, id_fecha, hora_registro):
+    """
+    Inserta un registro en la tabla de hechos de actividad.
+    
+    Args:
+        db_dw: Conexión al Data Warehouse.
+        id_usuario (int): ID del usuario.
+        id_actividad (int): ID de la actividad.
+        id_fecha (int): ID de la fecha.
+        hora_registro (str): Hora del registro en formato HH:MM:SS.
+        
+    Returns:
+        bool: True si la inserción fue exitosa, False en caso contrario.
+    """
+    try:
+        if not all([id_usuario, id_actividad, id_fecha, hora_registro]):
+            logger.warning(f"Datos incompletos para inserción: usuario={id_usuario}, actividad={id_actividad}, fecha={id_fecha}")
+            return False
+            
+        db_dw.table("hechos_actividad").insert({
+            "id_usuario": id_usuario,
+            "id_actividad": id_actividad,
+            "id_fecha": id_fecha,
+            "hora_registro": hora_registro
+        }).execute()
+        
+        logger.debug(f"Hecho insertado: usuario={id_usuario}, actividad={id_actividad}, fecha={id_fecha}")
+        return True
+    except Exception as e:
+        logger.error(f"Error al insertar hecho para usuario {id_usuario}: {e}")
+        return False
+\end{lstlisting}
+
+Para el caso particular que tomamos al principio podemos ver el resultado de este proceso ETL
+
+\begin{lstlisting}[language=sql]
+    SELECT *
+    FROM hechos_actividad
+    WHERE
+        id_usuario = 1 AND
+        id_actividad = 6 AND
+        id_fecha = 149;
+
+    +-----------+-------------+---------------+-----------+----------------+
+    | id_hecho  | id_usuario  | id_actividad  | id_fecha  | hora_registro  |
+    +-----------+-------------+---------------+-----------+----------------+
+    |        1  |          1  |            6  |       149 |       08:21:53 |
+    +-----------+-------------+---------------+-----------+----------------+
+\end{lstlisting}
+
+Cada registro de hechos mantiene integridad referencial con las dimensiones correspondientes, especialmente \texttt{dim\_usuario}, permitiendo realizar análisis cruzados entre comportamientos y atributos del usuario.
+\paragraph{Validación de integridad}
+El proceso ETL incluye controles que aseguran que los registros solo se inserten si el usuario asociado ya se encuentra registrado en la dimensión correspondiente. Esto previene inconsistencias y garantiza la confiabilidad de los datos analíticos generados a partir del Data Warehouse.
