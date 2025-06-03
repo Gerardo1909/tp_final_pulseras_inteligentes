@@ -1,7 +1,5 @@
 -- CREACION DE DW
 
--- se poblan manualmente
-
 CREATE TABLE "dim_plan" (
 	"id_plan" SERIAL PRIMARY KEY,
 	"nombre_plan" VARCHAR(100) NOT NULL,
@@ -22,10 +20,8 @@ CREATE TABLE "dim_estado_pago" (
 CREATE TABLE "dim_actividad" (
 	"id_actividad" SERIAL PRIMARY KEY,
 	"tipo_dato" VARCHAR(50) NOT NULL, 
-	"descripcion" VARCHAR(100) NOT NULL -- Actividades que el usuario puede hacer con la pulsera o la aplicacion
+	"descripcion" VARCHAR(100) NOT NULL 
 );
-
--- se poblan con scripts
 
 CREATE TABLE "dim_usuario" (
 	"id_usuario" INTEGER PRIMARY KEY,
@@ -61,7 +57,6 @@ CREATE TABLE "hechos_pagos" (
     CONSTRAINT fk_fecha FOREIGN KEY ("id_fecha") REFERENCES "dim_fecha"("id_fecha")
 );
 
--- registra hechos para un día de un usuario correspondientes a actividad
 CREATE TABLE "hechos_actividad" (
     "id_hecho" SERIAL PRIMARY KEY,
     "id_usuario" INTEGER NOT NULL,
@@ -71,4 +66,16 @@ CREATE TABLE "hechos_actividad" (
     CONSTRAINT fk_usuario_actividad FOREIGN KEY ("id_usuario") REFERENCES "dim_usuario"("id_usuario"),
     CONSTRAINT fk_actividad FOREIGN KEY ("id_actividad") REFERENCES "dim_actividad"("id_actividad"),
     CONSTRAINT fk_fecha_actividad FOREIGN KEY ("id_fecha") REFERENCES "dim_fecha"("id_fecha")
+);
+
+
+-- TABLA DE LOGS PARA AUDITORÍA
+CREATE TABLE log_eventos (
+    "id_log" SERIAL PRIMARY KEY,
+    "tabla_afectada" TEXT NOT NULL,
+    "operacion" TEXT NOT NULL,              
+    "fecha_operacion" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "clave_primaria" TEXT,                  
+    "datos_anteriores" JSONB,              
+    "datos_nuevos" JSONB                   
 );

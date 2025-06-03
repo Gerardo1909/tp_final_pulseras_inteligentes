@@ -1,6 +1,6 @@
 """
 Script ETL para cargar la dimensión de usuarios en la base de datos dimensional 
-para análisis de ventas.
+para análisis de negocio.
 
 Este script extrae la información de usuarios desde la base de datos operacional
 y la carga en la dimensión de usuarios de la base de datos dimensional, considerando solo
@@ -12,7 +12,8 @@ from pulseras_inteligentes.utils.etl_funcs import manejo_errores_proceso, logger
 
 def extraer_ultima_fecha_insercion_dim_usuarios(db_dw):
     """
-    Obtiene la fecha del último registro insertado en la tabla de dimensión de usuarios.
+    Obtiene la fecha del último registro insertado en la tabla de dimensión de usuarios 
+    utilizando la tabla de auditoría.
     
     Args:
         db_dw: Conexión a la base de datos.
@@ -21,23 +22,35 @@ def extraer_ultima_fecha_insercion_dim_usuarios(db_dw):
         str: Fecha del último registro o None si no hay registros.
     """
     try:
-        respuesta = (
-            db_dw.table("dim_usuario")
-            .select("fecha_registro")
-            .order("fecha_registro", desc=True)
+        # Buscar la última inserción en la tabla de auditoría para dim_usuario
+        respuesta_log = (
+            db_dw.table("log_eventos")
+            .select("fecha_operacion")
+            .eq("tabla_afectada", "dim_usuario")
+            .eq("operacion", "INSERT")
+            .order("fecha_operacion", desc=True)
             .limit(1)
             .execute()
         )
         
-        if not respuesta.data:
-            logger.info("No existen registros previos en la dimensión de usuarios.")
+        if not respuesta_log.data:
+            logger.info("No existen registros previos en la dimensión de usuarios según log_eventos.")
             return None
+        
+        # Extraer la fecha de operación del log
+        fecha_operacion = respuesta_log.data[0]["fecha_operacion"]
+        
+        # Si la fecha viene como string, mantenerla así; si es datetime, convertir a string
+        if isinstance(fecha_operacion, str):
+            ultima_fecha = fecha_operacion
+        else:
+            # Convertir datetime a string en formato ISO
+            ultima_fecha = fecha_operacion.isoformat()
             
-        ultima_fecha = respuesta.data[0]["fecha_registro"]
-        logger.info(f"Última fecha de inserción en dimensión usuarios: {ultima_fecha}")
+        logger.info(f"Última fecha de inserción en dimensión usuarios (desde log_eventos): {ultima_fecha}")
         return ultima_fecha
     except Exception as e:
-        logger.error(f"Error al extraer última fecha de inserción en dim_usuario: {e}")
+        logger.error(f"Error al extraer última fecha de inserción en dim_usuario desde log_eventos: {e}")
         raise
 
 def extraer_usuarios_por_fecha(db_transacciones, fecha_registro):

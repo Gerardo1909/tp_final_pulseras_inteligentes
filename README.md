@@ -12,6 +12,7 @@ Este proyecto corresponde al trabajo práctico final de la materia **Base de Dat
 ## 🧠 Nuestro caso de negocio
 
 Una compañía tecnológica está desarrollando una plataforma integral basada en **dispositivos portátiles inteligentes**. Estas pulseras monitorean continuamente diversos **parámetros biométricos** relacionados con la salud y la actividad física de los usuarios.  
+
 Los dispositivos capturan datos como:  
 - **Frecuencia cardíaca**
 - **Calidad del sueño**

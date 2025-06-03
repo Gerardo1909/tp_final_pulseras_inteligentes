@@ -5,7 +5,7 @@ de usuarios, suscripciones, pagos, etc. A continuación mostramos una imagen de 
 
 ![DER sistema operacional](/img/DER_sistema_operacional_pulseras_inteligentes.png)
 
-Para estructurar esta documentación, hemos clasificado las tablas en grupos según el rol que desempeñan dentro de la base de datos. Estos grupos se dividen en: **entidades principales y entidades categóricas**.
+Para estructurar esta documentación, hemos clasificado las tablas en grupos según el rol que desempeñan dentro de la base de datos. Estos grupos se dividen en: **entidades principales, entidades categóricas y auditoría**.
 
 ## Dominio de los Datos para las entidades principales
 
@@ -86,3 +86,56 @@ Las **entidades categóricas** contienen información que organiza los datos de 
    - **Valores:** 
      - *Activa*: La suscripción está en vigor y el usuario puede acceder a todos los beneficios.
      - *Cancelada*: La suscripción ha finalizado o ha sido cancelada.
+
+
+## Dominio de los datos para la tabla de auditoría:
+
+La **tabla de auditoría** tiene como objetivo mantener un registro histórico completo de todas las operaciones críticas que se realizan sobre las entidades principales del sistema. Esta funcionalidad es esencial para garantizar la **trazabilidad**, **integridad** y **transparencia** de las operaciones del negocio, permitiendo realizar seguimientos detallados y análisis retrospectivos.
+
+1. **Tabla: `log_eventos`**
+   - **Propósito:** Registra automáticamente todos los eventos de modificación (INSERT, UPDATE, DELETE) que ocurren en las tablas principales del sistema, proporcionando un historial completo de cambios para auditoría y análisis.
+   - **Campos principales:**
+     - `id_log` (**PK, SERIAL**): Identificador único para cada evento registrado.
+     - `tabla_afectada` (**TEXT**): Nombre de la tabla donde ocurrió la operación.
+     - `operacion` (**TEXT**): Tipo de operación realizada ('INSERT', 'UPDATE', 'DELETE').
+     - `fecha_operacion` (**TIMESTAMP**): Fecha y hora exacta en que se ejecutó la operación.
+     - `clave_primaria` (**TEXT**): Valor de la clave primaria del registro afectado.
+     - `datos_anteriores` (**JSONB**): Estado previo del registro (para operaciones UPDATE y DELETE).
+     - `datos_nuevos` (**JSONB**): Estado posterior del registro (para operaciones INSERT y UPDATE).
+
+## Sistema de triggers y funciones para auditoría:
+
+Para automatizar el proceso de auditoría, el sistema incluye un conjunto de **funciones PL/pgSQL y triggers** definidos en el archivo `funciones_eventos.sql`. Estas funciones se ejecutan automáticamente cada vez que ocurre una operación relevante en las tablas monitoreadas.
+
+### Funcionalidades implementadas:
+
+1. **Función: `registrar_update_usuarios()`**
+   - **Propósito:** Captura automáticamente cualquier actualización realizada en la tabla `usuarios` y registra el evento en `log_eventos`.
+   - **Tipo de trigger:** AFTER UPDATE - Se ejecuta después de que la actualización se haya completado exitosamente.
+   - **Información capturada:**
+     - Estado anterior del registro (`OLD` record)
+     - Estado actualizado del registro (`NEW` record)
+     - Timestamp exacto de la operación
+     - ID del usuario afectado
+
+2. **Trigger: `trg_update_usuarios`**
+   - **Vinculación:** Se activa automáticamente en cada operación UPDATE sobre la tabla `usuarios`.
+   - **Granularidad:** FOR EACH ROW - Registra cada fila individual que sea modificada.
+   - **Funcionamiento:** Invoca la función `registrar_update_usuarios()` para cada actualización detectada.
+
+### Beneficios del sistema de auditoría:
+
+- **Trazabilidad completa:** Permite rastrear exactamente qué cambios se realizaron, cuándo y qué datos fueron modificados.
+- **Integridad de datos:** Facilita la detección de modificaciones no autorizadas o erróneas.
+- **Análisis de patrones:** Los logs permiten identificar tendencias y patrones en las actualizaciones de usuarios.
+- **Soporte para ETL:** Los procesos de extracción, transformación y carga del Data Warehouse utilizan estos logs para identificar registros que requieren sincronización.
+- **Cumplimiento normativo:** Proporciona evidencia auditable para cumplir con regulaciones de protección de datos y auditorías internas/externas.
+
+### Casos de uso en el sistema ETL:
+
+El script `etl_actualizar_dim_usuario.py` del Data Warehouse utiliza directamente esta tabla de auditoría para:
+- Identificar qué usuarios han sido modificados desde la última sincronización
+- Extraer únicamente los registros que requieren actualización en la dimensión de usuarios
+- Optimizar el proceso de sincronización evitando procesamientos innecesarios de datos no modificados
+
+

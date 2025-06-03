@@ -61,5 +61,18 @@ CREATE TABLE "suscripcion" (
 	CONSTRAINT fk_pago FOREIGN KEY ("id_pago") REFERENCES "pagos"("id_pago")
 );
 
+-- TABLA DE LOGS PARA AUDITORÍA
+CREATE TABLE log_eventos (
+    "id_log" SERIAL PRIMARY KEY,
+    "tabla_afectada" TEXT NOT NULL,
+    "operacion" TEXT NOT NULL,              
+    "fecha_operacion" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "clave_primaria" TEXT,                  
+    "datos_anteriores" JSONB,              
+    "datos_nuevos" JSONB                   
+);
+
+
+
 
 

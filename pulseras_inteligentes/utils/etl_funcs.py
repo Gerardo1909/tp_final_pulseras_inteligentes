@@ -6,7 +6,7 @@ Este módulo proporciona diversas funciones relacionadas al manejo de flujo ETL 
 
 from datetime import datetime
 from dateutil import parser
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union
 from contextlib import contextmanager
 import logging
 import traceback
@@ -112,7 +112,7 @@ def manejo_errores_proceso(nombre_proceso: str, raise_exception: bool = True):
 
 def extraer_ultima_fecha_insercion_hechos(db_dw, nombre_tabla_hechos: str) -> Optional[str]:
     """
-    Extrae la fecha de la última inserción en una tabla de hechos.
+    Extrae la fecha de la última inserción en una tabla de hechos utilizando la tabla de auditoría.
     
     Args:
         db_dw: Conexión a la base de datos.
@@ -123,33 +123,37 @@ def extraer_ultima_fecha_insercion_hechos(db_dw, nombre_tabla_hechos: str) -> Op
     """
     try:
         # Registramos la operación
-        logger.debug(f"Extrayendo última fecha de inserción para tabla {nombre_tabla_hechos}")
+        logger.debug(f"Extrayendo última fecha de inserción para tabla {nombre_tabla_hechos} desde log_eventos")
         
-        # Primero extraigo el id de la fecha 
-        id_fecha_respuesta = (
-            db_dw.table(nombre_tabla_hechos)
-            .select("id_fecha")
-            .order("id_fecha", desc=True)
+        # Buscar la última inserción en la tabla de auditoría para la tabla específica
+        respuesta_log = (
+            db_dw.table("log_eventos")
+            .select("fecha_operacion")
+            .eq("tabla_afectada", nombre_tabla_hechos)
+            .eq("operacion", "INSERT")
+            .order("fecha_operacion", desc=True)
             .limit(1)
             .execute()
         )
         
-        if not id_fecha_respuesta.data:
-            logger.info(f"No se encontraron registros en la tabla {nombre_tabla_hechos}.")
+        if not respuesta_log.data:
+            logger.info(f"No se encontraron registros de inserción en log_eventos para la tabla {nombre_tabla_hechos}.")
             return None
 
-        # Ahora busco dicho id en la dim_fecha
-        id_fecha = id_fecha_respuesta.data[0]['id_fecha']
-        respuesta_dim_fecha = (
-            db_dw.table("dim_fecha")
-            .select("id_fecha, fecha")
-            .eq("id_fecha", id_fecha)
-            .execute()
-        )
-
-        fecha = respuesta_dim_fecha.data[0]['fecha']
-        # La convierto a un formato ISO
-        fecha_iso = datetime.strptime(fecha, "%Y-%m-%d").isoformat()
+        # Extraer la fecha de operación y convertirla a formato ISO
+        fecha_operacion = respuesta_log.data[0]['fecha_operacion']
+        
+        # Si la fecha viene como string, parseamos; si es datetime, convertimos directamente
+        if isinstance(fecha_operacion, str):
+            # Manejar diferentes formatos de fecha que puede devolver la base de datos
+            if fecha_operacion.endswith("Z"):
+                fecha_operacion = fecha_operacion[:-1]  # Remover la 'Z'
+            fecha_dt = parser.parse(fecha_operacion)
+        else:
+            fecha_dt = fecha_operacion
+        
+        # Convertir a formato ISO (solo fecha, sin hora) para mantener compatibilidad
+        fecha_iso = fecha_dt.strftime("%Y-%m-%d") + "T00:00:00"
         logger.debug(f"Última fecha de inserción para {nombre_tabla_hechos}: {fecha_iso}")
         return fecha_iso
     
